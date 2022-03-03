@@ -13,16 +13,19 @@
  */
 package io.trino.plugin.iceberg;
 
+import io.trino.spi.QueryId;
 import io.trino.testing.AbstractTestQueryFramework;
 import io.trino.testing.QueryRunner;
 import org.testng.annotations.Test;
 
 import java.util.List;
 
+import static io.trino.plugin.hive.HiveMetadata.TRINO_QUERY_ID_NAME;
 import static io.trino.plugin.iceberg.IcebergQueryRunner.createIcebergQueryRunner;
 import static io.trino.testing.sql.TestTable.randomTableSuffix;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestIcebergSnapshots
         extends AbstractTestQueryFramework
@@ -34,6 +37,31 @@ public class TestIcebergSnapshots
             throws Exception
     {
         return createIcebergQueryRunner();
+    }
+
+    @Test
+    public void testSnapshotSummariesHaveTrinoQueryId()
+    {
+        final String tableName = "test_snapshot_query_ids" + randomTableSuffix();
+
+        try {
+            QueryId createTableQueryId = getDistributedQueryRunner()
+                    .executeWithQueryId(getSession(), "CREATE TABLE " + tableName + " (a  bigint, b bigint)")
+                    .getQueryId();
+            assertThat(getQueryIdsFromSnapshotsByCreationOrder(tableName))
+                    .map(QueryId::valueOf)
+                    .containsExactly(createTableQueryId);
+
+            QueryId appendQueryId = getDistributedQueryRunner()
+                    .executeWithQueryId(getSession(), "INSERT INTO " + tableName + " VALUES(1, 1)")
+                    .getQueryId();
+            assertThat(getQueryIdsFromSnapshotsByCreationOrder(tableName))
+                    .map(QueryId::valueOf)
+                    .containsExactly(createTableQueryId, appendQueryId);
+        }
+        finally {
+            assertUpdate(format("DROP TABLE %s", tableName));
+        }
     }
 
     @Test
@@ -72,6 +100,15 @@ public class TestIcebergSnapshots
                 format("SELECT snapshot_id FROM \"%s$snapshots\" ORDER BY committed_at", tableName))
                 .getMaterializedRows().stream()
                 .map(row -> (Long) row.getField(ID_FIELD))
+                .collect(toList());
+    }
+
+    private List<String> getQueryIdsFromSnapshotsByCreationOrder(String tableName)
+    {
+        return getQueryRunner().execute(
+                format("SELECT json_extract_scalar(CAST(SUMMARY AS JSON), '$.%s') FROM \"%s$snapshots\"", TRINO_QUERY_ID_NAME, tableName))
+                .getMaterializedRows().stream()
+                .map(row -> (String) row.getField(0))
                 .collect(toList());
     }
 }
