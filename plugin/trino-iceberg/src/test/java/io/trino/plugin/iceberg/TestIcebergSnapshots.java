@@ -20,7 +20,7 @@ import org.testng.annotations.Test;
 
 import java.util.List;
 
-import static io.trino.plugin.hive.HiveMetadata.TRINO_QUERY_ID_NAME;
+import static io.trino.plugin.iceberg.IcebergMetadata.TRINO_QUERY_ID_NAME;
 import static io.trino.plugin.iceberg.IcebergQueryRunner.createIcebergQueryRunner;
 import static io.trino.testing.sql.TestTable.randomTableSuffix;
 import static java.lang.String.format;
