@@ -19,6 +19,7 @@ import io.trino.testing.QueryRunner;
 import org.testng.annotations.Test;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import static io.trino.plugin.iceberg.IcebergMetadata.TRINO_QUERY_ID_NAME;
 import static io.trino.plugin.iceberg.IcebergQueryRunner.createIcebergQueryRunner;
@@ -101,12 +102,11 @@ public class TestIcebergSnapshots
                 .collect(toList());
     }
 
-    private List<QueryId> getQueryIdsFromSnapshotsByCreationOrder(String tableName)
+    private Stream<QueryId> getQueryIdsFromSnapshotsByCreationOrder(String tableName)
     {
         return getQueryRunner().execute(
                 format("SELECT json_extract_scalar(CAST(SUMMARY AS JSON), '$.%s') FROM \"%s$snapshots\"", TRINO_QUERY_ID_NAME, tableName))
                 .getOnlyColumn()
-                .map(column -> QueryId.valueOf((String) column))
-                .collect(toList());
+                .map(column -> QueryId.valueOf((String) column));
     }
 }
