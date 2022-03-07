@@ -49,14 +49,12 @@ public class TestIcebergSnapshots
                     .executeWithQueryId(getSession(), "CREATE TABLE " + tableName + " (a  bigint, b bigint)")
                     .getQueryId();
             assertThat(getQueryIdsFromSnapshotsByCreationOrder(tableName))
-                    .map(QueryId::valueOf)
                     .containsExactly(createTableQueryId);
 
             QueryId appendQueryId = getDistributedQueryRunner()
                     .executeWithQueryId(getSession(), "INSERT INTO " + tableName + " VALUES(1, 1)")
                     .getQueryId();
             assertThat(getQueryIdsFromSnapshotsByCreationOrder(tableName))
-                    .map(QueryId::valueOf)
                     .containsExactly(createTableQueryId, appendQueryId);
         }
         finally {
@@ -103,12 +101,12 @@ public class TestIcebergSnapshots
                 .collect(toList());
     }
 
-    private List<String> getQueryIdsFromSnapshotsByCreationOrder(String tableName)
+    private List<QueryId> getQueryIdsFromSnapshotsByCreationOrder(String tableName)
     {
         return getQueryRunner().execute(
                 format("SELECT json_extract_scalar(CAST(SUMMARY AS JSON), '$.%s') FROM \"%s$snapshots\"", TRINO_QUERY_ID_NAME, tableName))
-                .getMaterializedRows().stream()
-                .map(row -> (String) row.getField(0))
+                .getOnlyColumn()
+                .map(column -> QueryId.valueOf((String) column))
                 .collect(toList());
     }
 }
