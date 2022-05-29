@@ -217,6 +217,8 @@ public class IcebergMetadata
 
     public static final String TRINO_QUERY_ID_NAME = "trino_query_id";
 
+    public static final String TRINO_VERSION = "trino_version";
+
     private static final Pattern PATH_PATTERN = Pattern.compile("(.*)/[^/]+");
     private static final int OPTIMIZE_MAX_SUPPORTED_TABLE_VERSION = 2;
     private static final int CLEANING_UP_PROCEDURES_MAX_SUPPORTED_TABLE_VERSION = 2;

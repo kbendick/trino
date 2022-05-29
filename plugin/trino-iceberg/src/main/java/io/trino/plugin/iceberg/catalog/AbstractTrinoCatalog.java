@@ -255,6 +255,15 @@ public abstract class AbstractTrinoCatalog
                 .buildOrThrow();
     }
 
+    protected Map<String, String> createSnapshotProperties(ConnectorSession session)
+    {
+        return ImmutableMap.<String, String>builder()
+                .put(TRINO_CREATED_BY, TRINO_CREATED_BY_VALUE)
+                .put(PRESTO_VERSION_NAME, trinoVersion)
+                .put(PRESTO_QUERY_ID_NAME, session.getQueryId())
+                .buildOrThrow();
+    }
+
     protected SchemaTableName createMaterializedViewStorageTable(ConnectorSession session, SchemaTableName viewName, ConnectorMaterializedViewDefinition definition)
     {
         // Generate a storage table name and create a storage table. The properties in the definition are table properties for the
