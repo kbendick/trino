@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
+import org.apache.iceberg.SnapshotUpdate;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.TableMetadata;
 import org.apache.iceberg.TableOperations;
@@ -255,7 +256,15 @@ public abstract class AbstractTrinoCatalog
                 .buildOrThrow();
     }
 
-    protected Map<String, String> createSnapshotProperties(ConnectorSession session)
+    protected <T> SnapshotUpdate<T> setDefaultSnapshotUpdateProps(ConnectorSession session, SnapshotUpdate<T> update)
+    {
+        getDefaultSnapshotUpdateProperties(session)
+                .forEach(update::set);
+        // return the update for method chaining.
+        return update;
+    }
+
+    protected Map<String, String> getDefaultSnapshotUpdateProperties(ConnectorSession session)
     {
         return ImmutableMap.<String, String>builder()
                 .put(TRINO_CREATED_BY, TRINO_CREATED_BY_VALUE)

@@ -13,6 +13,8 @@
  */
 package io.trino.plugin.iceberg;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import io.trino.spi.QueryId;
 import io.trino.testing.AbstractTestQueryFramework;
 import io.trino.testing.QueryRunner;
@@ -46,17 +48,49 @@ public class TestIcebergSnapshots
         final String tableName = "test_snapshot_query_ids" + randomTableSuffix();
 
         try {
+            List<QueryId> queryIds = Lists.newArrayList();
+            // Create table.
             QueryId createTableQueryId = getDistributedQueryRunner()
                     .executeWithQueryId(getSession(), "CREATE TABLE " + tableName + " (a  bigint, b bigint)")
                     .getQueryId();
+            queryIds.add(createTableQueryId);
+
             assertThat(getQueryIdsFromSnapshotsByCreationOrder(tableName))
                     .containsExactly(createTableQueryId);
 
+            // Insert
             QueryId appendQueryId = getDistributedQueryRunner()
                     .executeWithQueryId(getSession(), "INSERT INTO " + tableName + " VALUES(1, 1)")
                     .getQueryId();
+            queryIds.add(appendQueryId);
+
+            // Multi-value insert
+            QueryId multiValueInsert = getDistributedQueryRunner()
+                    .executeWithQueryId(getSession(), "INSERT INTO " + tableName + " VALUES (1, 2), (2, 1), (2, 2)")
+                    .getQueryId();
+            queryIds.add(multiValueInsert);
+
+            // Upgrade to Format v2
+            QueryId alterTablePropertiesToFormatV2 = getDistributedQueryRunner()
+                    .executeWithQueryId(getSession(), "ALTER TABLE " + tableName + " SET PROPERTIES format_version = 2")
+                    .getQueryId();
+//            queryIds.add(alterTablePropertiesToFormatV2);
+
+            // Row level delete
+            // TODO - This is generating multiple snapshots (as observed by snapshot summary query IDs)
+            //  when it's only a = 1
+            // It seems that each individual MOR delta file generates its own snapshot - is this intended?
+            QueryId singleRowDeleteQueryId = getDistributedQueryRunner()
+                    .executeWithQueryId(getSession(), "DELETE FROM " + tableName + " WHERE a = 2 AND b = 1")
+                    .getQueryId();
+            queryIds.add(singleRowDeleteQueryId);
+
             assertThat(getQueryIdsFromSnapshotsByCreationOrder(tableName))
-                    .containsExactly(createTableQueryId, appendQueryId);
+                    .containsExactlyElementsOf(queryIds);
+
+            // Ensure all Query IDs are unique.
+            assertThat(Sets.newHashSet(queryIds))
+                    .hasSameSizeAs(queryIds);
         }
         finally {
             assertUpdate(format("DROP TABLE %s", tableName));
