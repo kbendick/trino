@@ -1501,6 +1501,8 @@ public class IcebergMetadata
 
             rowDelta.validateDataFilesExist(referencedDataFiles.build());
             try {
+                // TODO - I think this is the `commit` that should use `stageOnly` instead.
+                //   or the one below for fullyDeletedFiles.
                 getExtraSummaryMetadata(session).forEach(rowDelta::set);
                 rowDelta.commit();
             }
