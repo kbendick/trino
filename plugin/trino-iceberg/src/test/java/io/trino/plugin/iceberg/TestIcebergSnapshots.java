@@ -88,6 +88,7 @@ public class TestIcebergSnapshots
                     .executeWithQueryId(getSession(), "ALTER TABLE " + tableName + " SET PROPERTIES format_version = 2")
                     .getQueryId();
             // TODO - This needs to be made into a commit that updates the snapshot.
+            // TODO - TEMPORARY COMMIT TO KEEP BRANCH
 //            queryIds.add(alterTablePropertiesToFormatV2);
 
             logFormatted("QueryID for %s is %s", "alter table to format v2", alterTablePropertiesToFormatV2);
